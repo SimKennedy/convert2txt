@@ -1,0 +1,4 @@
+-e git://github.com/euske/pdfminer.git@14fd0fd2d6ef4e709731377decc6a8c119e5e9d6#egg=pdfminer-master
+python-docx==0.8.5
+slate==0.3
+xlrd==0.9.4
