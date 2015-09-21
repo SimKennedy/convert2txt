@@ -1,0 +1,21 @@
+
+/home/sim/git/convert2txt/dist/convert2txt-1.0.tar.gz
+
+
+pdfminer
+python-docx==0.8.5
+xlrd==0.9.4
+file:///home/sim/git/convert2txt/dist/convert2txt-1.0.tar.gz
+
+pex -r <(cat pex-r.txt) -m convert2txt -o convert.pex
+
+http://homebrewupdates.tumblr.com/post/9667300211/antiword-version-037-for-os-x
+http://brew.sh/
+https://pex.readthedocs.org/en/latest/buildingpex.html#other-ways-to-build-pex-files
+
+virtualenv venv
+source venv/bin/activate
+pip install xlrd python-docx pdfminer
+pip install https://pypi.python.org/packages/source/p/pdfminer/pdfminer-20140328.tar.gz#md5=dfe3eb1b7b7017ab514aad6751a7c2ea
+pip install https://github.com/mattgwwalker/msg-extractor/zipball/master
+python convert2txt.py

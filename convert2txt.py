@@ -5,9 +5,12 @@ import sys
 import errno
 import shutil
 import csv
+import re
+from subprocess import Popen, PIPE
+
 import xlrd
 import docx
-from subprocess import Popen, PIPE
+from ExtractMsg import Message
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
@@ -16,10 +19,11 @@ from pdfminer.layout import LAParams
 from cStringIO import StringIO
 
 
-def convert_pdf_to_txt(path):
+def pdf_to_txt(path):
     rsrcmgr = PDFResourceManager()
     retstr = StringIO()
     codec = 'utf-8'
+    #laparams = LAParams()
     laparams = None
     device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
     fp = file(path, 'rb')
@@ -37,7 +41,7 @@ def convert_pdf_to_txt(path):
     return str
 
 
-def docx2txt(filename):
+def docx_to_txt(filename):
     document = docx.Document(filename)
     docText = '\n'.join([
         paragraph.text.encode('utf-8') for paragraph in document.paragraphs
@@ -45,17 +49,20 @@ def docx2txt(filename):
     return docText
 
 
-def xls_to_csv(src, dst):
-    x =  xlrd.open_workbook(src)
+def xls_to_txt(src, dst):
+    x = xlrd.open_workbook(src)
     sheets = x.sheet_names()
+    text = ''
     for sheet in sheets:
-        savefile = os.path.splitext(dst)[0] + ' - ' + sheet + '.txt'
+        #savefile = os.path.splitext(dst)[0] + ' - ' + sheet + '.txt'
         x1 = x.sheet_by_name(sheet)
-        with open(savefile, 'wb') as out:
-            writecsv = csv.writer(out, quoting=csv.QUOTE_ALL)
-            for rownum in xrange(x1.nrows):
-                row = [unicode(i).encode('utf-8') for i in x1.row_values(rownum)]
-                out.write(' '.join(row) + '\n')
+        #with open(savefile, 'wb') as out:
+            # writecsv = csv.writer(out, quoting=csv.QUOTE_ALL) # For csv format
+        for rownum in xrange(x1.nrows):
+            row = [unicode(i).encode('utf-8') for i in x1.row_values(rownum)]
+            text += ' '.join(row) + '\n'
+            #out.write(' '.join(row) + '\n')
+    return text
 
 
 def mkdir_p(path):
@@ -67,64 +74,102 @@ def mkdir_p(path):
         else: raise
 
 
+def getUniqueName(path):
+    i = 2
+    newpath = path
+    while os.path.exists(newpath):
+        if os.path.isfile(path):
+            filename, ext = os.path.splitext(path)
+            newpath = getUniqueName(filename) + str(i) + ext
+        else:
+            newpath = path + str(i)
+        i += 1
+    return newpath
+
+
 def main(srcDir):
-    srcDir = '/home/sim/git/convert2txt/root/Tender1'
-    #srcDir = '/home/sim/git/convert2txt/examples/test'
+
     convertedDir = os.path.abspath(srcDir) + '-converted'
+    dstDir = getUniqueName(convertedDir)
 
     failed_conversion = []
-
-    if os.path.exists(convertedDir):
-        shutil.rmtree(convertedDir)
 
     for path, dirs, files in os.walk(srcDir):
         for f in files:
             src = os.path.join(path, f)
+            copydst = src.replace(srcDir, dstDir)
+            mkdir_p(os.path.dirname(copydst))
+            shutil.copyfile(src, src.replace(srcDir, dstDir))
+            found = re.search('.*[Bb]uyer([0-9]+)/([Tt]ender[0-9]+)/([A-z0-9]+)', src)
+            combinedFile = None
+            if found:
+                bxtenderx = 'b' + found.group(1) + found.group(2).lower()
+                bxtenderxappend = bxtenderx + '-' + found.group(3).lower()
+                saveDir = os.path.join(found.group(0), bxtenderxappend)
+                convertDst = os.path.join(saveDir, f)
+                combinedFile = os.path.join(saveDir.replace(srcDir, dstDir), bxtenderxappend) + '.txt'
+            else:
+                convertDst = src
+
+            convertDst = convertDst.replace(srcDir, dstDir)
+            convertDst = convertDst + '.txt'
+            if os.path.isfile(convertDst):
+                convertDst = getUniqueName(convertDst)
+
+            text = None
             try:
-                dst = src.replace(srcDir, convertedDir)
-                dst = os.path.splitext(dst)[0] + '.txt'
-                mkdir_p(os.path.dirname(dst))
+                mkdir_p(os.path.dirname(convertDst))
                 filetype = os.path.splitext(src)[1].lower()
                 if filetype == '.doc':
-                    with open(dst, 'wb') as out:
-                        cmd = ['antiword', src]
-                        p = Popen(cmd, stdout=PIPE)
-                        stdout, stderr = p.communicate()
-                        text = stdout.decode('ascii', 'ignore')
-                        text = unicode(text).encode('utf-8')
-                        out.write(text)
-                        if not os.path.isfile(dst):
-                            raise
+                    print 'Converting:', src
+                    cmd = ['antiword', src]
+                    p = Popen(cmd, stdout=PIPE)
+                    stdout, stderr = p.communicate()
+                    text = stdout.decode('ascii', 'ignore')
+                    text = unicode(text).encode('utf-8')
+                    if p.returncode != 0:
+                        raise
                 if filetype == '.pdf':
                     print 'Converting:', src
-                    with open(dst, 'wb') as out:
-                        out.write(convert_pdf_to_txt(src))
+                    text = pdf_to_txt(src)
                 if filetype == '.docx':
                     print 'Converting:', src
-                    with open(dst, 'wb') as out:
-                        out.write(docx2txt(src))
+                    text = docx_to_txt(src)
                 if filetype in ['.xls', '.xlsx']:
                     print 'Converting:', src
-                    xls_to_csv(src, dst)
+                    text = xls_to_txt(src, convertDst)
+                if filetype in ['.msg']:
+                    print 'Extracting email from:', src
+                    msg = Message(src)
+                    text = '\n'.join([msg.subject, msg.date, msg.body])
+                if text:
+                    with open(convertDst, 'ab') as out:
+                        out.write(text)
+                    if combinedFile:
+                        with open(combinedFile, 'ab') as combout:
+                            combout.write(text)
             except:
                 failed_conversion.append(src)
 
-    print failed_conversion
-    if failed_conversion:
-        print 'Failed:\n', '\n'.join(failed_conversion)
-        failedFile = os.path.abspath(os.path.join(srcDir, os.pardir, 'failed_to_convert.txt'))
 
-        with open(failedFile, 'wb') as out:
-            for item in failed_conversion:
-                out.write(item)
+    if failed_conversion:
+        print '\nFailed to convert:\n\n', '\n'.join(failed_conversion)
+
+        failedFilename = os.path.basename(srcDir) + '-failed_to_convert.txt'
+        failedFilepath = dstDir + '-failed_to_convert.txt'
+        with open(failedFilepath, 'wb') as out:
+            out.write('Failed to convert:\n\n' + '\n'.join(failed_conversion))
+
 
 if __name__ == '__main__':
-    args = sys.argv
+    # args = sys.argv
+    #
+    # if len(args) < 2:  # need script
+    #     print 'Provide path to directory to convert.'
+    #     sys.exit(1)
+    #
+    # path = args[1]
 
-    if len(args) < 2:  # need script
-        print 'Provide path to directory to convert.'
-        sys.exit(1)
-
-    path = args[1]
+    path = '/home/sim/git/convert2txt/files/examples/test'
 
     main(path)
