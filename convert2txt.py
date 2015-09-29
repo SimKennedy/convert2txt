@@ -10,7 +10,6 @@ from subprocess import Popen, PIPE
 
 import xlrd
 import docx
-from ExtractMsg import Message
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
@@ -100,7 +99,8 @@ def main(srcDir):
             copydst = src.replace(srcDir, dstDir)
             mkdir_p(os.path.dirname(copydst))
             shutil.copyfile(src, src.replace(srcDir, dstDir))
-            found = re.search('.*[Bb]uyer([0-9]+)/([Tt]ender[0-9]+)/([A-z0-9]+)', src)
+            slash = os.path.sep
+            found = re.search('.*[Bb]uyer([0-9]+)'+slash+'([Tt]ender[0-9]+)'+slash+'([A-z0-9]+)', src)
             combinedFile = None
             if found:
                 bxtenderx = 'b' + found.group(1) + found.group(2).lower()
@@ -138,10 +138,10 @@ def main(srcDir):
                 if filetype in ['.xls', '.xlsx']:
                     print 'Converting:', src
                     text = xls_to_txt(src, convertDst)
-                if filetype in ['.msg']:
-                    print 'Extracting email from:', src
-                    msg = Message(src)
-                    text = '\n'.join([msg.subject, msg.date, msg.body])
+                if filetype in ['.txt', '.text', '.csv']:
+                    with open(src, 'rb') as input:
+                        text = input.read()
+                        convertDst = convertDst.strip(filetype) + '.txt'
                 if text:
                     with open(convertDst, 'ab') as out:
                         out.write(text)
@@ -162,14 +162,14 @@ def main(srcDir):
 
 
 if __name__ == '__main__':
-    # args = sys.argv
-    #
-    # if len(args) < 2:  # need script
-    #     print 'Provide path to directory to convert.'
-    #     sys.exit(1)
-    #
-    # path = args[1]
+    args = sys.argv
 
-    path = '/home/sim/git/convert2txt/files/examples/test'
+    if len(args) < 2:  # need script
+        print 'Provide path to directory to convert.'
+        sys.exit(1)
+
+    path = args[1]
+
+    #path = '/home/sim/git/convert2txt/files/examples/test'
 
     main(path)

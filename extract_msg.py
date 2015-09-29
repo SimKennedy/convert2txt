@@ -430,17 +430,17 @@ def main(srcDir):
 
 
 if __name__ == "__main__":
-    # args = sys.argv
-    #
-    # if len(args) < 2:  # need script
-    #     print 'Provide path to directory containing .msg files.'
-    #     sys.exit(1)
-    #
-    # path = args[1]
-    #
+    args = sys.argv
+
+    if len(args) < 2:  # need script
+        print 'Provide path to directory containing .msg files.'
+        sys.exit(1)
+
+    path = args[1]
+
     useFileName = True
 
     #path = '/home/sim/git/convert2txt/files/Westfield School'
-    path = '/home/sim/git/convert2txt/files/msgtest'
+    #path = '/home/sim/git/convert2txt/files/msgtest'
 
     main(path)
