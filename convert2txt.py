@@ -100,7 +100,7 @@ def main(srcDir):
             mkdir_p(os.path.dirname(copydst))
             shutil.copyfile(src, src.replace(srcDir, dstDir))
             slash = os.path.sep
-            found = re.search('.*[Bb]uyer([0-9]+)'+slash+'([Tt]ender[0-9]+)'+slash+'([A-z0-9]+)', src)
+            found = re.search(r'.*[Bb]uyer([0-9]+)[\\/]([Tt]ender[0-9]+)[\\/]([A-z0-9]+)[\\/]', src)
             combinedFile = None
             if found:
                 bxtenderx = 'b' + found.group(1) + found.group(2).lower()
@@ -111,6 +111,11 @@ def main(srcDir):
             else:
                 convertDst = src
 
+            # print f
+            # print src
+            # print found.group(3)
+            # print combinedFile
+            # os._exit(1)
             convertDst = convertDst.replace(srcDir, dstDir)
             convertDst = convertDst + '.txt'
             if os.path.isfile(convertDst):
@@ -122,7 +127,12 @@ def main(srcDir):
                 filetype = os.path.splitext(src)[1].lower()
                 if filetype == '.doc':
                     print 'Converting:', src
-                    cmd = ['antiword', src]
+                    if os.name == 'nt':
+                        cmd = ['cd C:\antiword & antiword', src]
+                    else:
+                        cmd = ['antiword', src]
+                    print cmd
+                    # os._exit(1)
                     p = Popen(cmd, stdout=PIPE)
                     stdout, stderr = p.communicate()
                     text = stdout.decode('ascii', 'ignore')
