@@ -23,14 +23,20 @@ pip install -r requirements.txt
 
 ### Using convert2txt
 
-When you want to run the script:
+Every time you want to run the script:
 
+Activate the virtual environment:
+ 
 ```
 cd ~/git/convert2txt
 source venv/bin/activate
-python convert2txt.py path/to/folder/or/file/to/convert
 ```
 
+Then run the script on the desired folder or file:
+
+```
+python convert2txt.py path/to/folder/or/file/to/convert
+```
 
 
 ### Using ExtractMSG
@@ -38,5 +44,10 @@ python convert2txt.py path/to/folder/or/file/to/convert
 ```
 cd ~/git/convert2txt
 source venv/bin/activate
+```
+
+Then run the script on the desired folder or file:
+
+```
 python extract_msg.py [path to dir]
 ```
