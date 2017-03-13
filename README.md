@@ -25,7 +25,8 @@ pip install -r requirements.txt
 
 Every time you want to run the script:
 
-Activate the virtual environment:
+Change the terminal directory to your "convert2txt" directory and 
+activate the virtual environment:
  
 ```
 cd ~/git/convert2txt
